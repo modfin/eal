@@ -1,4 +1,4 @@
-package mflogger
+package eal
 
 import (
 	"bytes"
