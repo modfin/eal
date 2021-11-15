@@ -10,8 +10,8 @@ import (
 )
 
 type (
-	// Entry extend logrus.Entry with additional convenience methods, to be easier to implement structured logging
-	// of errors.
+	// Entry extend the logrus.Entry type, with additional convenience methods: WithCtx, WithError and WithFields,
+	// to simplify logging.
 	Entry struct {
 		logrus.Entry
 	}
@@ -23,11 +23,16 @@ const (
 	errorType    = "error-type"
 )
 
+// NewEntry return an Entry instance to be used for creating a log entry.
+// For example:
+//  eal.NewEntry().Info("App started")
 func NewEntry() *Entry {
 	return &Entry{Entry: *logrus.WithFields(logrus.Fields{})}
 }
 
 // WithFields adds custom fields (key/value) to the log entry.
+// For example:
+//  eal.NewEntry().WithFields(eal.Fields{"time": time.Since(start)}).Info("Work completed")
 func (e *Entry) WithFields(f map[string]interface{}) *Entry {
 	for k, v := range f {
 		if !strings.HasPrefix(k, "_") {
@@ -37,7 +42,9 @@ func (e *Entry) WithFields(f map[string]interface{}) *Entry {
 	return e
 }
 
-// WithError adds error information to the log entry.
+// WithError uses UnwrapError internally to extract more information from the error and add it to the log entry fields.
+//
+// See UnwrapError and RegisterErrorLogFunc methods for more information about how to extend the log entry fields.
 func (e *Entry) WithError(err error) *Entry {
 	if err == nil {
 		return e

@@ -10,7 +10,12 @@ import (
 )
 
 type (
-	Fields     map[string]interface{}
+	// Fields hold the map of key/value log fields that should be logged.
+	Fields map[string]interface{}
+
+	// ErrLogFunc type can be implemented to be able to add log fields for a specific error.
+	//
+	// See RegisterErrorLogFunc and UnwrapError regarding the SetLogFields interface for more information.
 	ErrLogFunc func(err error, fields Fields)
 )
 
@@ -26,9 +31,10 @@ var (
 	registeredErrorLogFunctions = make(map[interface{}]ErrLogFunc)
 )
 
+// InitDefaultErrorLogging register a error logger that append more information to the log for echo.HTTPError and
+// jwt.ValidationError errors.
 func InitDefaultErrorLogging() {
-	RegisterErrorLogFunc((*echo.HTTPError)(nil), errorLogger)
-	RegisterErrorLogFunc((*jwt.ValidationError)(nil), errorLogger)
+	RegisterErrorLogFunc(errorLogger, (*echo.HTTPError)(nil), (*jwt.ValidationError)(nil))
 }
 
 func errorLogger(err error, fields Fields) {
@@ -79,7 +85,7 @@ func errorLogger(err error, fields Fields) {
 			fields[jwtText] = e.Errors
 		}
 	default:
-		fields["errorlogger"] = fmt.Sprintf("emw.errorlogger: Don't know how to handle %T error types ", err)
+		fields["errorlogger"] = fmt.Sprintf("eal.errorlogger: Don't know how to handle %T error type ", err)
 	}
 }
 
@@ -110,12 +116,12 @@ func NewHTTPError(err error, code int, msg ...interface{}) error {
 	return hErr
 }
 
-// RegisterErrorLogFunc registers a function that should be called when a specific error interface is seen by
-// UnwrapError. If you have your own error types (structs) that you want to log, it's probably easier to implement
-// a SetLogFields method to handle logging. RegisterErrorLogFunc should be used for other error types that you don't
-// have any control over, that contains information that isn't exposed via the Error() method or if you want to use
-// structured logging for data in the error type, for example:
-//  RegisterErrorLogFunc((*net.OpError)(nil), func(err error, fields map[string]interface{}) {
+// RegisterErrorLogFunc registers a function that is called when a specific error interface is seen by UnwrapError.
+// If you have your own error types (structs) that you want to log, it is easier to implement a SetLogFields method
+// to handle logging. RegisterErrorLogFunc should be used for other error types that you don't have any control over,
+// that contains information that isn't exposed via the Error() method or if you want to use structured logging for
+// data in the error type, for example:
+//  RegisterErrorLogFunc(func(err error, fields map[string]interface{}) {
 //    oe, ok := err.(*net.OpError)
 //    if !ok {
 //      return
@@ -124,18 +130,21 @@ func NewHTTPError(err error, code int, msg ...interface{}) error {
 //    fields["net_addr"] = oe.Addr.String()
 //    fields["temporary"] = oe.Temporary()
 //    fields["timeout"] = oe.Timeout()
-//  })
-func RegisterErrorLogFunc(err error, errFmtFunc ErrLogFunc) {
-	t := reflect.ValueOf(err)
-	if t.Kind() == reflect.Ptr && t.IsNil() {
-		registeredErrorLogFunctions[reflect.TypeOf(err)] = errFmtFunc
-	} else {
-		registeredErrorLogFunctions[err] = errFmtFunc
+//  }, (*net.OpError)(nil))
+func RegisterErrorLogFunc(errFmtFunc ErrLogFunc, errList ...error) {
+	for _, err := range errList {
+		t := reflect.ValueOf(err)
+		if t.Kind() == reflect.Ptr && t.IsNil() {
+			registeredErrorLogFunctions[reflect.TypeOf(err)] = errFmtFunc
+		} else {
+			registeredErrorLogFunctions[err] = errFmtFunc
+		}
 	}
 }
 
-// UnwrapError walks the error chain and for each error check if it implements the SetLogFields interface, or if the
-// type have a registered log function, and create a flat log records containing information from errors in the chain.
+// UnwrapError walks the error-chain and add information to the provided log-fields. For each error in the error-chain,
+// it will check if the error either implements the SetLogFields(map[string]interface{}) interface or if the type have a
+// registered log function that is used to populate the log-fields.
 // This is used by Entry.WithError to add error information to a log event.
 func UnwrapError(err error, fields map[string]interface{}) {
 	if err == nil {

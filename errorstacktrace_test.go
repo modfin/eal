@@ -40,7 +40,7 @@ func TestTrace(t *testing.T) {
 		wantStackTrace bool
 	}{
 		{name: "nil", err: nil, wantNilError: true},
-		{name: "test1", err: errTest1, wantErrorType: "*mflogger.ErrorStackTrace", wantStackTrace: true},
+		{name: "test1", err: errTest1, wantErrorType: "*eal.ErrorStackTrace", wantStackTrace: true},
 		{name: "wrapped", err: fmt.Errorf("wrapped test error: %w", Trace(errTest2)), wantErrorType: "*fmt.wrapError", wantStackTrace: true},
 		{name: "sql_ErrNoRows", err: sql.ErrNoRows, wantErrorType: "*errors.errorString"},
 		{name: "jwt_ValidationError", err: &jwt.ValidationError{}, wantErrorType: "*jwt.ValidationError"},
@@ -132,7 +132,7 @@ func TestGetErrorStackTrace(t *testing.T) {
 			if uwErr == nil {
 				t.Fatal("got err.Unwrap() = nil, want non nil")
 			}
-			if uwErr != errTest1 {
+			if !errors.Is(uwErr, errTest1) {
 				t.Errorf("err.Unwrap() want 'errTest1', got [%T, %[1]v]", uwErr)
 			}
 		})

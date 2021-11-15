@@ -17,21 +17,19 @@ type ErrorStackTrace struct {
 	stack string
 }
 
-var (
-	// LogCallStackDirectly control if an error message should be logged immediately with the callstack
-	// when the Trace method is called. If there is a chance that the error that is returned by the Trace
-	// method is thrown away before it's logged, LogCallStackDirectly can be set to true to log the callstack
-	// immediately.
-	LogCallStackDirectly bool
+// LogCallStackDirectly control if an error message should be logged immediately with the callstack
+// when the Trace method is called. If there is a chance that the error that is returned by the Trace
+// method is thrown away before it's logged, LogCallStackDirectly can be set to true to log the callstack
+// immediately.
+var LogCallStackDirectly bool
 
+var (
 	inhibitStacktraceForError = make(map[interface{}]struct{})
 )
 
-// InhibitStacktraceForError will inhibit/block/skip stacktrace generation for certain error types/instances when
-// Trace is called. If a stacktrace isn't generated, Trace will instead return the supplied error.
-//
-// To block Trace from generating stacktraces for sql.ErrNoRows or jwt.ValidationError types, use:
-//  InhibitStacktraceForError(sql.ErrNoRows, (*jwt.ValidationError)(nil), (*echo.HTTPError)(nil))
+// InhibitStacktraceForError will add the error types/instances to a map that is checked when Trace is called.
+// If Trace is called with an error type/instance that exist in the map, a callstack won't be generated and Trace
+// will return the error unmodified.
 func InhibitStacktraceForError(err ...error) {
 	for _, errItem := range err {
 		t := reflect.ValueOf(errItem)
@@ -69,8 +67,10 @@ func (st *ErrorStackTrace) TypeName() string {
 	return reflect.TypeOf(st.err).String()
 }
 
-// Trace return an error that gather the callstack and wraps the provided error. If the provided error already is, or
-// contain a wrapped ErrorStackTrace error, the provided error is returned without modification.
+// Trace can wrap the provided error in a ErrorStackTrace type that contain the callstack.
+// If the provided error type/instance have been added to the inhibit-map by calling InhibitStacktraceForError,
+// the error will be returned as-is and won't be wrapped in a ErrorStackTrace type.
+// If the provided error already is, or contain a wrapped ErrorStackTrace error, the error is also returned as-is.
 func Trace(err error) error {
 	if err == nil {
 		return nil

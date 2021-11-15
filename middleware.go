@@ -12,7 +12,11 @@ const (
 	contextName = "mfContextLogFields"
 )
 
-// CreateLoggerMiddleware return a echo middleware function that handle logging of the call.
+// CreateLoggerMiddleware return an echo middleware method that handle access and error logging of the call.
+//
+// If an error is returned from the handlerFunc, the middleware will look at the complete error-chain to find the
+// earliest echo.HTTPError, and return the status code and message from that to the frontend.
+// If the error-chain don't contain an echo.HTTPError, a new echo.HTTPError will be created that wrap the returned error.
 func CreateLoggerMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
@@ -85,8 +89,9 @@ func CreateLoggerMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-// AddContextFields adds log fields the log context, and is included in logging done by the CreateLoggerMiddleware middleware.
-// Any fields added by this method can also be logged elsewhere by using Entry.WithCtx function.
+// AddContextFields add the fields to the log context, fields added to the context is included in logging done by the
+// CreateLoggerMiddleware. The fields added by this method can also be logged elsewhere by using Entry.WithCtx
+// method.
 func AddContextFields(c echo.Context, fields Fields) {
 	if c == nil {
 		return

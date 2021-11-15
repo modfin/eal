@@ -3,6 +3,7 @@ package eal
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,8 @@ const (
 	gray   = 37
 )
 
+// Init initialize the logrus logger. If devMode is true, a text based logger will be used, otherwise a JSON logger
+// is used to output the log information to STDOUT.
 func Init(devMode bool) {
 	if !devMode {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -56,6 +59,7 @@ func (f *CustomTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 	fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s] %s ", levelColor, levelText, entry.Time.Format("15:04:05"), entry.Message)
 
+	sort.Strings(keys)
 	for _, k := range keys {
 		v := entry.Data[k]
 		fmt.Fprintf(b, " \x1b[%dm%s\x1b[0m=", levelColor, k)
