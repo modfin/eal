@@ -151,6 +151,8 @@ func UnwrapError(err error, fields map[string]interface{}) {
 		return
 	}
 
+	fields[errorMessage] = err.Error()
+
 	for err != nil {
 		// First check if error implement SetLogFields(LogFields)
 		if slf, ok := err.(interface{ SetLogFields(map[string]interface{}) }); ok {
@@ -171,5 +173,4 @@ func UnwrapError(err error, fields map[string]interface{}) {
 		}
 		err = errors.Unwrap(err)
 	}
-	fields[errorMessage] = err.Error()
 }
