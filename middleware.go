@@ -2,6 +2,7 @@ package eal
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -24,6 +25,16 @@ func CreateLoggerMiddleware() echo.MiddlewareFunc {
 			req := c.Request()
 			res := c.Response()
 
+			// Check if we have X-Host or X-Forwarded-Host header
+			host := req.Header.Get("X-Host")
+			if host == "" {
+				alt := req.Header.Get("X-Forwarded-Host")
+				if alt != "" {
+					host = strings.Split(alt, ":")[0]
+					req.Header.Set("X-Host", host)
+				}
+			}
+
 			// Generate Request ID if it's missing
 			id := req.Header.Get("X-Request-Id")
 			if id == "" {
@@ -37,7 +48,7 @@ func CreateLoggerMiddleware() echo.MiddlewareFunc {
 			logFields := Fields{
 				"request_id":  id,
 				"remote_ip":   req.Header.Get("X-Remote-Addr"),
-				"host":        req.Header.Get("X-Host"),
+				"host":        host,
 				"method":      req.Method,
 				"uri":         req.RequestURI,
 				"router_path": c.Path(),
