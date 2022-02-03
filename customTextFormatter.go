@@ -32,7 +32,7 @@ func (f *CustomTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	var b *bytes.Buffer
 	keys := make([]string, 0, len(entry.Data))
 	for k := range entry.Data {
-		if k != "error-stack" {
+		if k != errorStack {
 			keys = append(keys, k)
 		}
 	}
@@ -57,7 +57,7 @@ func (f *CustomTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 	levelText := strings.ToUpper(entry.Level.String())[0:4]
 
-	fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s] %s ", levelColor, levelText, entry.Time.Format("15:04:05"), entry.Message)
+	fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s] %s", levelColor, levelText, entry.Time.Format("15:04:05"), entry.Message)
 
 	sort.Strings(keys)
 	for _, k := range keys {
@@ -68,9 +68,9 @@ func (f *CustomTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 	b.WriteByte('\n')
 
-	if stack, ok := entry.Data["error-stack"]; ok {
+	if stack, ok := entry.Data[errorStack]; ok {
 		if stack, ok := stack.(string); ok {
-			fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m=", levelColor, "error-stack")
+			fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m=", levelColor, errorStack)
 			b.WriteByte('\n')
 			for _, r := range strings.Split(stack, `\n`) {
 				b.WriteString(r)
