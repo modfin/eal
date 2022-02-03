@@ -13,46 +13,70 @@ const (
 	contextName = "mfContextLogFields"
 )
 
+// ContextLogFunc can be implemented to be able to add log fields from an echo context.
+type ContextLogFunc func(c echo.Context, fields Fields)
+
+var DefaultContextLogFunc = func(c echo.Context, fields Fields) {
+	req := c.Request()
+	res := c.Response()
+
+	// Check if we have X-Host or X-Forwarded-Host header
+	host := req.Header.Get("X-Host")
+	if host == "" {
+		alt := req.Header.Get("X-Forwarded-Host")
+		if alt != "" {
+			host = strings.Split(alt, ":")[0]
+			req.Header.Set("X-Host", host)
+		}
+	}
+
+	// Generate Request ID if it's missing
+	id := req.Header.Get("X-Request-Id")
+	if id == "" {
+		a, _ := uuid.NewV4()
+		id = a.String()
+		req.Header.Set("X-Request-Id", id)
+		res.Header().Set("X-Request-Id", id)
+	}
+
+	// Attempt to get remote address of the client
+	var remoteAddr string
+	for _, h := range []string{"X-Forwarded-For", "X-Real-Ip", "X-Remote-Addr"} {
+		remoteAddr = req.Header.Get(h)
+		if remoteAddr != "" {
+			break
+		}
+	}
+	if remoteAddr == "" {
+		remoteAddr = req.RemoteAddr
+	}
+
+	fields["request_id"] = id
+	fields["remote_addr"] = remoteAddr
+	fields["host"] = host
+	fields["method"] = req.Method
+	fields["uri"] = req.RequestURI
+	fields["router_path"] = c.Path()
+}
+
 // CreateLoggerMiddleware return an echo middleware method that handle access and error logging of the call.
 //
 // If an error is returned from the handlerFunc, the middleware will look at the complete error-chain to find the
 // earliest echo.HTTPError, and return the status code and message from that to the frontend.
 // If the error-chain don't contain an echo.HTTPError, a new echo.HTTPError will be created that wrap the returned error.
-func CreateLoggerMiddleware() echo.MiddlewareFunc {
+func CreateLoggerMiddleware(logFunctions ...ContextLogFunc) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
 			// Init
-			req := c.Request()
-			res := c.Response()
-
-			// Check if we have X-Host or X-Forwarded-Host header
-			host := req.Header.Get("X-Host")
-			if host == "" {
-				alt := req.Header.Get("X-Forwarded-Host")
-				if alt != "" {
-					host = strings.Split(alt, ":")[0]
-					req.Header.Set("X-Host", host)
-				}
+			if len(logFunctions) == 0 {
+				logFunctions = []ContextLogFunc{DefaultContextLogFunc}
 			}
-
-			// Generate Request ID if it's missing
-			id := req.Header.Get("X-Request-Id")
-			if id == "" {
-				a, _ := uuid.NewV4()
-				id = a.String()
-				req.Header.Set("X-Request-Id", id)
-				res.Header().Set("X-Request-Id", id)
+			logFields := Fields{}
+			for _, f := range logFunctions {
+				f(c, logFields)
 			}
 
 			// Setup logging context
-			logFields := Fields{
-				"request_id":  id,
-				"remote_ip":   req.Header.Get("X-Remote-Addr"),
-				"host":        host,
-				"method":      req.Method,
-				"uri":         req.RequestURI,
-				"router_path": c.Path(),
-			}
 			c.Set(contextName, logFields)
 			// TODO: Look into also setting logFields on c.Request().Context()?
 
@@ -75,7 +99,7 @@ func CreateLoggerMiddleware() echo.MiddlewareFunc {
 			// Log request result
 			latency := int64(stop.Sub(start) / time.Millisecond)
 			logFields["latency_ms"] = latency
-			logFields["status"] = res.Status
+			logFields["status"] = c.Response().Status
 
 			// Create log entry
 			logEntry := NewEntry()

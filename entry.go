@@ -18,9 +18,9 @@ type (
 )
 
 const (
-	errorMessage = "error-message"
-	errorStack   = "error-stack"
-	errorType    = "error-type"
+	errorMessage = "error_message"
+	errorStack   = "error_stack"
+	errorType    = "error_type"
 )
 
 // NewEntry return an Entry instance to be used for creating a log entry.

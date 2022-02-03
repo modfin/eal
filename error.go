@@ -21,10 +21,10 @@ type (
 
 // Define some common log field names used by the errorLogger
 const (
-	httpMessage    = "http-message"
-	httpStatusCode = "http-status"
-	jwtError       = "jwt-error"
-	jwtText        = "jwt-text"
+	httpMessage    = "http_message"
+	httpStatusCode = "http_status"
+	jwtError       = "jwt_error"
+	jwtText        = "jwt_text"
 )
 
 var (
@@ -85,7 +85,7 @@ func errorLogger(err error, fields Fields) {
 			fields[jwtText] = e.Errors
 		}
 	default:
-		fields["errorlogger"] = fmt.Sprintf("eal.errorlogger: Don't know how to handle %T error type ", err)
+		fields["error_logger"] = fmt.Sprintf("eal.errorlogger: Don't know how to handle %T error type ", err)
 	}
 }
 
