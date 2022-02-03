@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	uuid "github.com/nu7hatch/gouuid"
 )
 
 const (
@@ -33,8 +33,7 @@ var DefaultContextLogFunc = func(c echo.Context, fields Fields) {
 	// Generate Request ID if it's missing
 	id := req.Header.Get("X-Request-Id")
 	if id == "" {
-		a, _ := uuid.NewV4()
-		id = a.String()
+		id = uuid.New().String()
 		req.Header.Set("X-Request-Id", id)
 		res.Header().Set("X-Request-Id", id)
 	}

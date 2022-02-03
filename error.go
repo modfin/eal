@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
@@ -79,7 +80,7 @@ func errorLogger(err error, fields Fields) {
 			vErr += "ValidationErrorClaimsInvalid "
 		}
 		if vErr != "" {
-			fields[jwtError] = vErr
+			fields[jwtError] = strings.TrimSpace(vErr)
 		}
 		if e.Inner == nil {
 			fields[jwtText] = e.Errors
