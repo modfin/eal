@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -122,16 +122,17 @@ func NewHTTPError(err error, code int, msg ...interface{}) error {
 // to handle logging. RegisterErrorLogFunc should be used for other error types that you don't have any control over,
 // that contains information that isn't exposed via the Error() method or if you want to use structured logging for
 // data in the error type, for example:
-//  RegisterErrorLogFunc(func(err error, fields map[string]interface{}) {
-//    oe, ok := err.(*net.OpError)
-//    if !ok {
-//      return
-//    }
-//    fields["net_oper"] = oe.Op
-//    fields["net_addr"] = oe.Addr.String()
-//    fields["temporary"] = oe.Temporary()
-//    fields["timeout"] = oe.Timeout()
-//  }, (*net.OpError)(nil))
+//
+//	RegisterErrorLogFunc(func(err error, fields map[string]interface{}) {
+//	  oe, ok := err.(*net.OpError)
+//	  if !ok {
+//	    return
+//	  }
+//	  fields["net_oper"] = oe.Op
+//	  fields["net_addr"] = oe.Addr.String()
+//	  fields["temporary"] = oe.Temporary()
+//	  fields["timeout"] = oe.Timeout()
+//	}, (*net.OpError)(nil))
 func RegisterErrorLogFunc(errFmtFunc ErrLogFunc, errList ...error) {
 	for _, err := range errList {
 		t := reflect.ValueOf(err)
