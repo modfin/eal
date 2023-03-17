@@ -207,12 +207,12 @@ func TestUnwrapError(t *testing.T) {
 			want: map[string]interface{}{"error_message": "testErr", "registeredErrorLogFunctions": true, "set_log_fields": true, "temporary": false, "type_*eal.testErr": true},
 		},
 		{
-			name: "ApiError-pointer",
+			name: "nonComparableError-pointer",
 			err:  &nonComparableError{lines: []string{"test", "lines"}},
 			want: map[string]interface{}{"error_message": "test,lines", "registeredErrorLogFunctions": true, "type_*eal.nonComparableError": true},
 		},
 		{
-			name: "ApiError-struct",
+			name: "nonComparableError-struct",
 			err:  nonComparableError{lines: []string{"test", "lines"}},
 			want: map[string]interface{}{"error_message": "test,lines"},
 		},
