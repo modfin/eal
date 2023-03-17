@@ -83,7 +83,7 @@ func errorLogger(err error, fields Fields) {
 			fields[jwtError] = strings.TrimSpace(vErr)
 		}
 		if e.Inner == nil {
-			fields[jwtText] = e.Errors
+			fields[jwtText] = e.Error()
 		}
 	default:
 		fields["error_logger"] = fmt.Sprintf("eal.errorlogger: Don't know how to handle %T error type ", err)
@@ -123,7 +123,7 @@ func NewHTTPError(err error, code int, msg ...interface{}) error {
 // that contains information that isn't exposed via the Error() method or if you want to use structured logging for
 // data in the error type, for example:
 //
-//	RegisterErrorLogFunc(func(err error, fields map[string]interface{}) {
+//	eal.RegisterErrorLogFunc(func(err error, fields eal.Fields) {
 //	  oe, ok := err.(*net.OpError)
 //	  if !ok {
 //	    return
@@ -164,14 +164,13 @@ func UnwrapError(err error, fields map[string]interface{}) {
 		}
 
 		// Check if error type have a registered ErrLogFunc
-		if logFunc, ok := registeredErrorLogFunctions[err]; ok {
+		t := reflect.TypeOf(err)
+		if logFunc, ok := registeredErrorLogFunctions[t]; ok {
 			logFunc(err, fields)
-			err = errors.Unwrap(err)
-			continue
-		}
-
-		if logFunc, ok := registeredErrorLogFunctions[reflect.TypeOf(err)]; ok {
-			logFunc(err, fields)
+		} else if t.Comparable() {
+			if logFunc, ok := registeredErrorLogFunctions[err]; ok {
+				logFunc(err, fields)
+			}
 		}
 		err = errors.Unwrap(err)
 	}
