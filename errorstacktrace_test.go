@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type (
@@ -29,8 +29,8 @@ func (e *testError) Error() string {
 }
 
 func TestTrace(t *testing.T) {
-	// Don't generate stack-traces for sql.ErrNoRows, or for jwt.ValidationError error types
-	InhibitStacktraceForError(sql.ErrNoRows, (*jwt.ValidationError)(nil))
+	// Don't generate stack-traces for sql.ErrNoRows, or for jwt error types
+	InhibitStacktraceForError(sql.ErrNoRows, jwt.ErrInvalidType)
 
 	for _, tt := range []struct {
 		name           string
@@ -43,7 +43,7 @@ func TestTrace(t *testing.T) {
 		{name: "test1", err: errTest1, wantErrorType: "*eal.ErrorStackTrace", wantStackTrace: true},
 		{name: "wrapped", err: fmt.Errorf("wrapped test error: %w", Trace(errTest2)), wantErrorType: "*fmt.wrapError", wantStackTrace: true},
 		{name: "sql_ErrNoRows", err: sql.ErrNoRows, wantErrorType: "*errors.errorString"},
-		{name: "jwt_ValidationError", err: &jwt.ValidationError{}, wantErrorType: "*jwt.ValidationError"},
+		{name: "jwt_Error", err: jwt.ErrInvalidType, wantErrorType: "*errors.errorString"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			err := Trace(tt.err)

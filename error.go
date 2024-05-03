@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -24,18 +22,15 @@ type (
 const (
 	httpMessage    = "http_message"
 	httpStatusCode = "http_status"
-	jwtError       = "jwt_error"
-	jwtText        = "jwt_text"
 )
 
 var (
 	registeredErrorLogFunctions = make(map[interface{}]ErrLogFunc)
 )
 
-// InitDefaultErrorLogging register a error logger that append more information to the log for echo.HTTPError and
-// jwt.ValidationError errors.
+// InitDefaultErrorLogging register a error logger that append more information to the log for echo.HTTPError.
 func InitDefaultErrorLogging() {
-	RegisterErrorLogFunc(errorLogger, (*echo.HTTPError)(nil), (*jwt.ValidationError)(nil))
+	RegisterErrorLogFunc(errorLogger, (*echo.HTTPError)(nil))
 }
 
 func errorLogger(err error, fields Fields) {
@@ -44,47 +39,6 @@ func errorLogger(err error, fields Fields) {
 	case *echo.HTTPError:
 		fields[httpMessage] = e.Message
 		fields[httpStatusCode] = e.Code
-
-	case *jwt.ValidationError:
-		var vErr string
-		errBits := e.Errors
-
-		if errBits&jwt.ValidationErrorMalformed != 0 {
-			vErr += "ValidationErrorMalformed "
-		}
-		if errBits&jwt.ValidationErrorUnverifiable != 0 {
-			vErr += "ValidationErrorUnverifiable "
-		}
-		if errBits&jwt.ValidationErrorSignatureInvalid != 0 {
-			vErr += "ValidationErrorSignatureInvalid "
-		}
-		if errBits&jwt.ValidationErrorAudience != 0 {
-			vErr += "ValidationErrorAudience "
-		}
-		if errBits&jwt.ValidationErrorExpired != 0 {
-			vErr += "ValidationErrorExpired "
-		}
-		if errBits&jwt.ValidationErrorIssuedAt != 0 {
-			vErr += "ValidationErrorIssuedAt "
-		}
-		if errBits&jwt.ValidationErrorIssuer != 0 {
-			vErr += "ValidationErrorIssuer "
-		}
-		if errBits&jwt.ValidationErrorNotValidYet != 0 {
-			vErr += "ValidationErrorNotValidYet "
-		}
-		if errBits&jwt.ValidationErrorId != 0 {
-			vErr += "ValidationErrorId "
-		}
-		if errBits&jwt.ValidationErrorClaimsInvalid != 0 {
-			vErr += "ValidationErrorClaimsInvalid "
-		}
-		if vErr != "" {
-			fields[jwtError] = strings.TrimSpace(vErr)
-		}
-		if e.Inner == nil {
-			fields[jwtText] = e.Error()
-		}
 	default:
 		fields["error_logger"] = fmt.Sprintf("eal.errorlogger: Don't know how to handle %T error type ", err)
 	}

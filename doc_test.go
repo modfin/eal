@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"net"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -33,11 +32,6 @@ func ExampleCreateLoggerMiddleware() {
 func ExampleInhibitStacktraceForError_errorReference() {
 	// Don't generate a stacktrace when Trace is called with a sql.ErrNoRows error.
 	InhibitStacktraceForError(sql.ErrNoRows)
-}
-
-func ExampleInhibitStacktraceForError_errorType() {
-	// Don't generate a stacktrace when Trace is called with a jwt.ValidationError error type.
-	InhibitStacktraceForError((*jwt.ValidationError)(nil))
 }
 
 func ExampleRegisterErrorLogFunc_single() {
