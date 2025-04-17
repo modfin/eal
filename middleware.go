@@ -13,6 +13,20 @@ const (
 	contextName = "mfContextLogFields"
 )
 
+type Skipper func(c echo.Context) bool
+
+func DefaultSkipper(echo.Context) bool {
+	return false
+}
+
+type LoggerConfig struct {
+	Skipper Skipper
+}
+
+var DefaultLoggerConfig = LoggerConfig{
+	Skipper: DefaultSkipper,
+}
+
 // ContextLogFunc can be implemented to be able to add log fields from an echo context.
 type ContextLogFunc func(c echo.Context, fields Fields)
 
@@ -63,12 +77,15 @@ var DefaultContextLogFunc = func(c echo.Context, fields Fields) {
 // If an error is returned from the handlerFunc, the middleware will look at the complete error-chain to find the
 // earliest echo.HTTPError, and return the status code and message from that to the frontend.
 // If the error-chain don't contain an echo.HTTPError, a new echo.HTTPError will be created that wrap the returned error.
-func CreateLoggerMiddleware(logFunctions ...ContextLogFunc) echo.MiddlewareFunc {
+func CreateLoggerMiddleware(config LoggerConfig, logFunctions ...ContextLogFunc) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
 			// Init
 			if len(logFunctions) == 0 {
 				logFunctions = []ContextLogFunc{DefaultContextLogFunc}
+			}
+			if config.Skipper == nil {
+				config.Skipper = DefaultSkipper
 			}
 			logFields := Fields{}
 			for _, f := range logFunctions {
@@ -110,6 +127,10 @@ func CreateLoggerMiddleware(logFunctions ...ContextLogFunc) echo.MiddlewareFunc 
 			msg, ok := logFields["_msg"]
 			if !ok {
 				msg = "access"
+			}
+
+			if config.Skipper(c) {
+				return nil
 			}
 
 			if _, ok := logEntry.Data[errorMessage]; ok {
